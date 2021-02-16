@@ -142,6 +142,8 @@
 
 ## CSS
 
+![image](https://github.com/EmisonLu/Study-Notes/raw/master/image/box-model.jpg)
+
 ### background
 
 ```css
