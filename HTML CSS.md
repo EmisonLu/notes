@@ -1,4 +1,4 @@
-# front end
+# HTML CSS
 
 ## Example
 
@@ -225,5 +225,3 @@ color: rgb(xxx, xxx, xxx)
 
 color: #B8860B
 ```
-
-## JavaScript
