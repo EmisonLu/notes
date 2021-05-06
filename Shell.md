@@ -2,7 +2,7 @@
 
 ## 1 Shell 程序和参数
 
-执行Shell程序的方法：
+**执行Shell程序的方法**
 
 1. `sh < Shell_program`
 2. `sh Shell_program`
@@ -12,7 +12,7 @@
    * `sh -u Shell_program`：显示引用了未设置变量的错误
 3. 首先为命令文件建立执行许可：`chmod a+x Shell_program`，以后执行时只需输入`Shell_program`即可
 
-位置参数：
+**位置参数**
 
 `Shell_program pram1 pram2...`：在程序中，`$1`对应`pram1`，`$2`对应`pram2`，最多9个位置参数
 
@@ -107,7 +107,7 @@ Shell变量与其它字母、下划线、数字之间必须有空格、制表符
 
 ## 3 测试和求值
 
-测试：
+**测试**
 
 * `test`是一个最常用、最重要的测试命令，测试一个表达式，返回一个条件码以供控制语句选择一个执行分支
 * 所有测试如满足测试条件就返回真值(返回代码为0)，否则返回假值(返回代码为1)
@@ -143,7 +143,7 @@ Shell变量与其它字母、下划线、数字之间必须有空格、制表符
 * 当比较两个Shell串变量或一个Shell串变量与一个字符串时，最好把串变量括在双引号内
 * `test`与`[   ]`是同一Shell内部程序，后者主要用于控制语句。`[`与`]`是程序名，与相邻符号名之间要留出空格
 
-求值：
+**求值**
 
 * `expr`也能用于参数比较
 * `expr`主要用于对数值求值
@@ -331,6 +331,185 @@ done
 `exit [n]`：以状态值n退出Shell，若n默认，最后一条命令执行的状态就是退出状态值
 
 `return [n]`：以返回值n退出一个函数，若n默认，返回值是最后一条命令执行的状态值
+
+## 5 递归和Shell函数
+
+**递归**
+
+```
+Example
+
+lstrees采用了递归技术，列出参数表中指定的所有目录子树下的全部目录，当lstrees不带参数时，则显示当前目录子树下的所有目录
+
+if test $# -eq 0; then
+	lstrees .
+else
+	for i in $*; do
+		if test -d $i; then
+			echo $i
+			(	cd $i
+				for j in *; do
+					lstrees $j
+				done	)
+    fi
+  done
+fi
+```
+
+**Shell函数**
+
+* Shell程序是存储在文件中的命令集合，Shell函数存储在内存中，而不是存储在一个文件中，因此对Shell函数的存取比对Shell程序的存取快得多
+
+* Shell要对Shell函数进行分析和预处理，因此执行Shell函数比执行Shell过程快
+
+* Shell是在本进程中直接执行Shell函数，而不是通过生成一个子进程执行Shell程序，降低了系统开销
+
+* 用户可以在`.profile`或Shell程序中定义Shell函数，或直接从Shell命令行输入
+
+  ```
+  up(){
+  	who
+  	ps -u $user
+  }
+  ```
+
+* 在Shell函数中可以引用Shell变量和位置参数，函数体位于一对`{}`内，用户输入`}`后，就退出了输入状态
+
+* Shell函数作用范围是从函数定义之后到当前Shell终止
+
+* Shell函数也能递归调用
+
+* 可以用`set`命令看到所有已定义的Shell函数
+
+* 可以用命令`unset 函数名`去除一个已定义的Shell函数
+
+* 当用户退出系统后，Shell不保留所有的Shell函数
+
+## 6 Shell内部命令
+
+**从标准输入中读入一行**
+
+* `read`命令常用于从标准输入或通过I/O转向从文件中输入一行
+* `read`命令将输入内容存入Shell变量中
+* 当读到文件底，或从键盘读入一个Ctrl+D时，`read`返回假值(1)，否则返回真值(0)，这个返回结果可用于控制语句中
+
+```
+Example
+
+if [$# -eq 0]; then
+	echo -n "Enter filename:"
+	read filename
+else
+	file=$1
+fi
+
+read命令由管道读入标准输入
+for file in chapter? chapter??
+do
+	cat $file |
+		while read fline
+		do
+			process $fline
+			...
+		done
+done
+```
+
+**求值和执行参数**
+
+* `eval`命令对其参数进行代换和求值，然后按它们就像是Shell程序一部分那样执行代换后的命令串
+
+```
+Example
+
+inputfilter="cmd1 | cmd2"
+outcmd="cmd3 > $result"
+eval "$inputfilter | command | $outcmd"
+等价于执行
+cmd1 | cmd2 | command | cmd3 > $result
+```
+
+* 在某些条件下，`eval`是执行某些命令串的唯一方法
+
+**点命令与`exec`命令**
+
+* `.`是Shell的一个内部命令，使当前Shell直接执行参数所指定的Shell程序，而不是产生子Shell执行该程序
+* 当多个Shell命令共享一组Shell变量时，用`.`命令非常有效
+* 格式为`. Shell_program`
+* `.`命令执行的Shell程序不必具有执行权限
+* `exec`也是内部命令，格式为`exec program`
+* 将被调用的程序覆盖当前执行的程序，从而执行参数指定的程序
+* 用`exec`命令执行，可以减少程序运行时所占的空间，当控制不需要返回到原执行程序时可用`exec`命令
+* `exec`执行的程序可以是Shell程序、UNIX命令、二进制可执行程序，都必须具有执行权限
+
+**信号自陷**
+
+* `trap`命令可以处理由信号引起的软中断
+* `trap`命令可以使用的信号由信号表定义
+* 当一个Shell进程收到信号后能执行信号表中预定义的处理动作，也能执行由`trap`命令指定的处理动作
+* `trap`命令的格式：`trap "命令表" 信号表`
+
+```
+Example
+
+trap "rm temp*; exit 1" 1 2 3 15
+当Shell收到了一个信号1(电话挂断)、信号2(中断Break)、信号3(退出Quit)或信号15(终止进程kill)后，删除临时文件temp*，并以一个假值返回码主动地退出
+```
+
+* 为了忽略或禁止信号，可执行命令表为空的`trap`命令：`trap "" 信号表`
+* 引入`trap`的另一个目的是在中断信号发生时删除该程序所用的临时文件，然后终止程序的执行，以免系统被”弄脏“
+
+**here文件**
+
+* here文件用于将标准输入暂时重定向到后面的Shell程序行
+
+```
+Example
+
+cat << eof
+	This is an example of
+	here file
+eof
+```
+
+* here文件开头由`<<`指示，其后面的符号可任意选择，用于指示here文件的结束
+* 在here文件中允许出现Shell变量和参数
+
+## 7 Shell环境
+
+命令开始执行时，所有的Shell变量和相应的值构成了命令的环境，又称为当前Shell环境
+
+这个环境包括本命令从父进程继承来的变量和命令行上的命令名和位置参数
+
+Shell进程传给子进程的Shell变量仅是那些作为`export`命令参数的变量
+
+`export`把这些变量放在当前Shell和所有子进程的环境中
+
+子进程可以存取其环境中任何变量的值，但是重置变量值并不影响环境，而仅仅影响正在运行的进程
+
+要得到当前Shell的所有环境变量表，可输入不带参数的`export`命令
+
+为了得到当前环境下Shell变量的名字-值，可执行命令`env`
+
+当用户在UNIX系统登录时，几个文件被用于为用户和Shell建立环境
+
+* `/etc/profile`：系统范围的环境设置，首次被执行
+
+* `$HOME/.profile`：sh或ksh用户的环境设置，其次执行(定义Shell函数的好地方)
+
+  ```
+  Example
+  
+  PATH=$PATH:$HOME/bin
+  PS1="/UNIX>
+  PS2="More Input!>
+  export PATH PS1 PS2
+  dir(){
+  	ls -l
+  }
+  ```
+
+  
 
 
 
